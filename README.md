@@ -63,22 +63,18 @@ This experiment demonstrates **inter-process synchronization and data transfer**
 
 ### Design File — `register_memory.sv`
 ```systemverilog
-
 module reg_memory_mailbox;
 
   typedef struct {
     int addr;
     int data;
-    bit wr; 
+    bit wr; // 1 = write, 0 = read
   } packet_t;
 
   mailbox mbox = new();
 
   int memory [0:15];
 
-```
-### Testbench File
-```
   initial begin
     fork
       producer();
@@ -90,14 +86,14 @@ module reg_memory_mailbox;
     packet_t pkt;
     int i;
     $display("\n=== PRODUCER STARTED ===");
-    for (i = 0; i < 5; i++) begin
+    for (i = 0; i < 6; i++) begin
       pkt.addr = $urandom_range(12, 56);
-      pkt.data = $urandom_range(50, 500);
+      pkt.data = $urandom_range(100, 380);
       pkt.wr   = $urandom_range(0, 1);
       mbox.put(pkt);
       $display("[%0t] PRODUCER: Sent packet -> Addr=%0d Data=%0d WR=%0b",
                $time, pkt.addr, pkt.data, pkt.wr);
-      #5;
+      #8;
     end
   endtask
 
@@ -117,20 +113,27 @@ module reg_memory_mailbox;
         $display("[%0t] CONSUMER: READ  -> Addr=%0d Data=%0d",
                  $time, rcv.addr, rd_data);
       end
-      #3;
+      #5;
     end
   endtask
 
 endmodule
+```
+### Testbench File
+```
+module tb_reg_memory_mailbox;
 
+  reg_memory_mailbox uut();
 
+  initial begin
+    #200 $finish;
+  end
+
+endmodule
 ```
 ### Simulation Output
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/db57a168-6a91-48b3-bc4c-f57836a164c2" />
-
- 
-
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6a666b67-ad86-4185-ba64-e9de094e9131" />
 
 ### Result
 
