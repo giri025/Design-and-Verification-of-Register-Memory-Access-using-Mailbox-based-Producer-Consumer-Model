@@ -1,5 +1,6 @@
 # Experiment 5: Design and Verification of Register Memory Access using Mailbox-based Producer-Consumer Model
-
+## Giri R
+##212223060068
 ---
 
 ## Aim  
@@ -62,51 +63,84 @@ This experiment demonstrates **inter-process synchronization and data transfer**
 
 ### Design File — `register_memory.sv`
 ```systemverilog
-//=====================================================
-// Design: Register Memory Model
-//=====================================================
-module register_memory #(parameter WIDTH = 8, DEPTH = 8) ();
+module reg_memory_mailbox;
 
-    // Register memory declaration
-    logic [WIDTH-1:0] mem [0:DEPTH-1];
+  typedef struct {
+    int addr;
+    int data;
+    bit wr; // 1 = write, 0 = read
+  } packet_t;
 
-    // Write task
-  
+  mailbox #(packet_t) mbox = new();
+  int memory [0:15];
 
-    // Read task
-    
+  task producer();
+    packet_t pkt;
+    int i;
+    $display("\n=== PRODUCER STARTED ===");
+    for (i = 0; i < 5; i++) begin
+      pkt.addr = $urandom_range(0, 15);
+      pkt.data = $urandom_range(0, 255);
+      pkt.wr   = $urandom_range(0, 1);
+      mbox.put(pkt);
+      $display("[%0t] PRODUCER: Sent packet -> Addr=%0d Data=%0d WR=%0b",
+               $time, pkt.addr, pkt.data, pkt.wr);
+      #5;
+    end
+  endtask
+
+  task consumer();
+    packet_t rcv;
+    int rd_data;
+    $display("\n=== CONSUMER STARTED ===");
+    repeat(5) begin
+      mbox.get(rcv);
+      if (rcv.wr) begin
+        memory[rcv.addr] = rcv.data;
+        $display("[%0t] CONSUMER: WRITE -> Addr=%0d Data=%0d",
+                 $time, rcv.addr, rcv.data);
+      end else begin
+        rd_data = memory[rcv.addr];
+        $display("[%0t] CONSUMER: READ  -> Addr=%0d Data=%0d",
+                 $time, rcv.addr, rd_data);
+      end
+      #3;
+    end
+  endtask
+
+  initial begin
+    fork
+      producer();
+      consumer();
+    join
+    $display("\n=== SIMULATION COMPLETE ===");
+    #10 $finish;
+  end
+
 endmodule
+
+
 ```
 ### Testbench File
 ```
-//=====================================================
-// Testbench: Producer-Consumer using Mailbox
-//=====================================================
-module register_memory_tb;
+`timescale 1ns/1ps
+module reg_memory_mailbox_tb;
 
-    // Parameter definitions
-    parameter WIDTH = 8;
-    parameter DEPTH = 8;
+  reg_memory_mailbox dut();
 
-    // Mailbox declaration
-    mailbox mbx = new();
-
-    // Instantiate Register Memory
-    register_memory #(WIDTH, DEPTH) regmem();
-
-    
-        fork
-            producer();
-            consumer();
-        join_any
-        #50 $finish;
-    end
+  initial begin
+    $dumpfile("reg_memory_mailbox.vcd");
+    $dumpvars(0, reg_memory_mailbox_tb);
+  end
 
 endmodule
 ```
 ### Simulation Output
 
------ Paste the Screenshot of the output here 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c5b3e65f-ad18-48a7-9c90-01f985ca2209" />
+
+
+
 
 
 ### Result
